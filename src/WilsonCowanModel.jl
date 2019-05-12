@@ -1,14 +1,12 @@
 module WilsonCowanModel
 
 using Parameters
-using RecipesBase
 using StaticArrays
 using Simulation73
 import Simulation73: target_loss
 using Random
-using MacroTools, IterTools, Espresso
+using MacroTools, IterTools
 using TensorOperations
-using Statistics
 
 export WCMSpatial
 
