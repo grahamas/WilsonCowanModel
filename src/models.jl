@@ -17,8 +17,7 @@ function WCMSpatial{T,N,P}(; pop_names::Array{Str,1}, α::Array{T,1}, β::Array{
         space::SP, connectivity::Array{C,2}, nonlinearity::Array{L,1}, stimulus::Array{S,1}) where {T,P,N,Str<:AbstractString,C<:AbstractConnectivity{T},L<:AbstractNonlinearity{T},S<:AbstractStimulus{T},SP<:AbstractSpace{T,N}}
     WCMSpatial{T,N,P,C,L,S,SP}(SVector{P,T}(α),SVector{P,T}(β),SVector{P,T}(τ),space,SMatrix{P,P,C}(connectivity),SVector{P,L}(nonlinearity),SVector{P,S}(stimulus),SVector{P,Str}(pop_names))
 end
-
-space_array(model::WCMSpatial) = Calculated(model.space).value
+initial_value(wcm::WCMSpatial) = zero(wcm.space)
 
 function make_linear_mutator(model::WCMSpatial{T,N,P}) where {T,N,P}
     function linear_mutator!(dA::Array{T,D}, A::Array{T,D}, t::T) where D
