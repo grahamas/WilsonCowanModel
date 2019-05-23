@@ -2,7 +2,7 @@
 struct WCMSpatial{T,D,P,C<:AbstractConnectivity{T,D},
                             L<:AbstractNonlinearity{T},
                             S<:AbstractStimulus{T,D},
-                            SP<:Pops{P,T,D}} <: AbstractModel{T,D,P}
+                            SP<:AbstractSpace{T,D}} <: AbstractModel{T,D,P}
     α::SVector{P,T}
     β::SVector{P,T}
     τ::SVector{P,T}
@@ -13,19 +13,34 @@ struct WCMSpatial{T,D,P,C<:AbstractConnectivity{T,D},
     pop_names::SVector{P,String}
 end
 
-function WCMSpatial{T,N,P}(; pop_names::Array{Str,1}, α::Array{T,1}, β::Array{T,1}, τ::Array{T,1},
-        space::SP, connectivity::Array{C,2}, nonlinearity::Array{L,1}, stimulus::Array{S,1}) where {T,P,N,Str<:AbstractString,C<:AbstractConnectivity{T},L<:AbstractNonlinearity{T},S<:AbstractStimulus{T},SP<:AbstractSpace{T,N}}
-    WCMSpatial{T,N,P,C,L,S,SP}(SVector{P,T}(α),SVector{P,T}(β),SVector{P,T}(τ),space,SMatrix{P,P,C}(connectivity),SVector{P,L}(nonlinearity),SVector{P,S}(stimulus),SVector{P,Str}(pop_names))
+function WCMSpatial{T,N,P}(;
+        pop_names::Array{Str,1}, α::Array{T,1}, β::Array{T,1},
+        τ::Array{T,1}, space::SP, connectivity::Array{C,2}, nonlinearity::Array{L,1},
+        stimulus::Array{S,1}
+        ) where {
+            T,P,N,Str<:AbstractString,C<:AbstractConnectivity{T},
+            L<:AbstractNonlinearity{T},S<:AbstractStimulus{T},SP<:AbstractSpace{T,N}
+        }
+    WCMSpatial{T,N,P,C,L,S,SP}(SVector{P,T}(α), SVector{P,T}(β), SVector{P,T}(τ), space,
+        SMatrix{P,P,C}(connectivity), SVector{P,L}(nonlinearity),
+        SVector{P,S}(stimulus), SVector{P,Str}(pop_names)
+    )
 end
-initial_value(wcm::WCMSpatial) = zero(wcm.space)
+
+struct WCMPopulationData{T,N,A<:AbstractArray{T,N}} <: AbstractHomogeneousNeuralData{T,N}
+    x::A
+end
+struct WCMPopulationsData{T,N,A<:AbstractArray{<:WCMPopulationData{T,N}}} <: AbstractHeterogeneousNeuralData{T,N}
+    u::A
+end
+initial_value(wcm::WCMSpatial{T,D,P}) where {T,D,P} = WCMPopulationsData([zero(wcm.space) for i in 1:P])
 
 function make_linear_mutator(model::WCMSpatial{T,N,P}) where {T,N,P}
-    function linear_mutator!(dA::Array{T,D}, A::Array{T,D}, t::T) where D
+    function linear_mutator!(dA::WCMPopulationsData{T,D}, A::WCMPopulationsData{T,D}, t::T) where D
         @views for i in 1:P
-            dAi = view_slice_last(dA, i); Ai = view_slice_last(A, i)
-            dAi .*= model.β[i] .* (1.0 .- Ai)
-            dAi .+= -model.α[i] .* Ai
-            dAi ./= model.τ[i]
+            dA[i] .*= model.β[i] .* (1.0 .- A[i])
+            dA[i] .+= -model.α[i] .* A[i]
+            dA[i] ./= model.τ[i]
         end
     end
 end
