@@ -33,9 +33,9 @@ end
 struct WCMPopulationsData{T,N,A<:AbstractArray{<:WCMPopulationData{T,N}}} <: AbstractHeterogeneousNeuralData{T,N}
     u::A
 end
-initial_value(wcm::WCMSpatial{T,D,P}) where {T,D,P} = WCMPopulationsData([zero(wcm.space) for i in 1:P])
+Simulation73.initial_value(wcm::WCMSpatial{T,D,P}) where {T,D,P} = WCMPopulationsData(WCMPopulationData.([zero(wcm.space) for i in 1:P]))
 
-function make_linear_mutator(model::WCMSpatial{T,N,P}) where {T,N,P}
+@memoize function make_linear_mutator(model::WCMSpatial{T,N,P}) where {T,N,P}
     function linear_mutator!(dA::WCMPopulationsData{T,D}, A::WCMPopulationsData{T,D}, t::T) where D
         @views for i in 1:P
             dA[i] .*= model.β[i] .* (1.0 .- A[i])
@@ -45,13 +45,17 @@ function make_linear_mutator(model::WCMSpatial{T,N,P}) where {T,N,P}
     end
 end
 
+@memoize function memoized_make_mutator(args...)
+    make_mutator(args...)
+end
+
 function Simulation73.make_system_mutator(model::WCMSpatial)
     println("Making mutators...")
-    stimulus_mutator! = make_mutator(model.stimulus, model.space)
+    stimulus_mutator! = memoized_make_mutator(model.stimulus, model.space)
     println("Made stimulus.")
-    connectivity_mutator! = make_mutator(model.connectivity, model.space)
+    connectivity_mutator! = memoized_make_mutator(model.connectivity, model.space)
     println("Made connectivity.")
-    nonlinearity_mutator! = make_mutator(model.nonlinearity)
+    nonlinearity_mutator! = memoized_make_mutator(model.nonlinearity)
     println("Made nonlinearity.")
     linear_mutator! = make_linear_mutator(model)
     println("Made linear.")
