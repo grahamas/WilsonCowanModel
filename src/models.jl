@@ -46,15 +46,25 @@ function make_linear_mutator(model::WCMSpatial{T,N,P}) where {T,N,P}
 end
 
 function Simulation73.make_system_mutator(model::WCMSpatial)
+    println("Making mutators...")
     stimulus_mutator! = make_mutator(model.stimulus, model.space)
+    println("Made stimulus.")
     connectivity_mutator! = make_mutator(model.connectivity, model.space)
+    println("Made connectivity.")
     nonlinearity_mutator! = make_mutator(model.nonlinearity)
+    println("Made nonlinearity.")
     linear_mutator! = make_linear_mutator(model)
+    println("Made linear.")
     function system_mutator!(dA, A, p, t)
+        println("Stimulus mutating...")
         stimulus_mutator!(dA, A, t)
+        println("done. Connectivity mutating...")
         connectivity_mutator!(dA, A, t)
+        println("done. Nonlinearity mutating...")
         nonlinearity_mutator!(dA, A, t)
+        println("done. Linear mutating...")
         linear_mutator!(dA, A, t)
+        println("done with time $t")
     end
 end
 

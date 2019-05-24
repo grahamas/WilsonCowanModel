@@ -13,7 +13,7 @@ export WCMSpatial
 
 export AbstractStimulus, SharpBumpStimulus, NoisyStimulus, GaussianNoiseStimulus, NoStimulus
 
-#include("helpers.jl")
+include("helpers.jl")
 include("stimulus.jl")
 include("models.jl")
 
