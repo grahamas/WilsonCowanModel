@@ -35,7 +35,7 @@ struct WCMPopulationsData{T,N,A<:AbstractArray{<:WCMPopulationData{T,N}}} <: Abs
 end
 initial_value(wcm::WCMSpatial{T,D,P}) where {T,D,P} = WCMPopulationsData([zero(wcm.space) for i in 1:P])
 
-function make_linear_mutator(model::WCMSpatial{T,N,P}) where {T,N,P}
+@memoize function make_linear_mutator(model::WCMSpatial{T,N,P}) where {T,N,P}
     function linear_mutator!(dA::WCMPopulationsData{T,D}, A::WCMPopulationsData{T,D}, t::T) where D
         @views for i in 1:P
             dA[i] .*= model.β[i] .* (1.0 .- A[i])
@@ -45,10 +45,14 @@ function make_linear_mutator(model::WCMSpatial{T,N,P}) where {T,N,P}
     end
 end
 
+@memoize function memoized_make_mutator(args...)
+    make_mutator(args...)
+end
+
 function Simulation73.make_system_mutator(model::WCMSpatial)
-    stimulus_mutator! = make_mutator(model.stimulus, model.space)
-    connectivity_mutator! = make_mutator(model.connectivity, model.space)
-    nonlinearity_mutator! = make_mutator(model.nonlinearity)
+    stimulus_mutator! = memoized_make_mutator(model.stimulus, model.space)
+    connectivity_mutator! = memoized_make_mutator(model.connectivity, model.space)
+    nonlinearity_mutator! = memoized_make_mutator(model.nonlinearity)
     linear_mutator! = make_linear_mutator(model)
     function system_mutator!(dA, A, p, t)
         stimulus_mutator!(dA, A, t)
