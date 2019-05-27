@@ -30,13 +30,12 @@ end
 struct WCMPopulationData{T,N,A<:AbstractArray{T,N}} <: AbstractHomogeneousNeuralData{T,N}
     x::A
 end
-struct WCMPopulationsData{T,N,A<:AbstractArray{<:WCMPopulationData{T,N}}} <: AbstractHeterogeneousNeuralData{T,N}
-    u::A
-end
-Simulation73.initial_value(wcm::WCMSpatial{T,D,P}) where {T,D,P} = WCMPopulationsData(WCMPopulationData.([zero(wcm.space) for i in 1:P]))
+const WCMPopulationsData{T,N,P} = ArrayPartition{T,<:NTuple{P,<:WCMPopulationData{T,N}}}
+Base.zero(data::DATA) where {T,N,A,DATA <: WCMPopulationData{T,N,A}}  = DATA(zero(data.x))
+Simulation73.initial_value(wcm::WCMSpatial{T,D,P}) where {T,D,P} = ArrayPartition([WCMPopulationData(zero(wcm.space)) for i in 1:P]...)
 
 @memoize function make_linear_mutator(model::WCMSpatial{T,N,P}) where {T,N,P}
-    function linear_mutator!(dA::WCMPopulationsData{T,D}, A::WCMPopulationsData{T,D}, t::T) where D
+    function linear_mutator!(dA::PopsData, A::PopsData, t::T) where {T,D,PopsData <: AbstractArray{<:WCMPopulationData{T,D},1}}
         @views for i in 1:P
             dA[i] .*= model.β[i] .* (1.0 .- A[i])
             dA[i] .+= -model.α[i] .* A[i]
@@ -50,25 +49,15 @@ end
 end
 
 function Simulation73.make_system_mutator(model::WCMSpatial)
-    println("Making mutators...")
     stimulus_mutator! = memoized_make_mutator(model.stimulus, model.space)
-    println("Made stimulus.")
     connectivity_mutator! = memoized_make_mutator(model.connectivity, model.space)
-    println("Made connectivity.")
     nonlinearity_mutator! = memoized_make_mutator(model.nonlinearity)
-    println("Made nonlinearity.")
     linear_mutator! = make_linear_mutator(model)
-    println("Made linear.")
     function system_mutator!(dA, A, p, t)
-        println("Stimulus mutating...")
         stimulus_mutator!(dA, A, t)
-        println("done. Connectivity mutating...")
         connectivity_mutator!(dA, A, t)
-        println("done. Nonlinearity mutating...")
         nonlinearity_mutator!(dA, A, t)
-        println("done. Linear mutating...")
         linear_mutator!(dA, A, t)
-        println("done with time $t")
     end
 end
 

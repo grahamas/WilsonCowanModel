@@ -8,6 +8,7 @@ using Random
 using MacroTools, IterTools
 using TensorOperations
 using NeuralModels
+using RecursiveArrayTools
 
 export WCMSpatial
 
