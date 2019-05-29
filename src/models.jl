@@ -27,19 +27,24 @@ function WCMSpatial{T,N,P}(;
     )
 end
 
-struct WCMPopulationData{T,N,A<:AbstractArray{T,N}} <: AbstractHomogeneousNeuralData{T,N}
-    x::A
-end
-const WCMPopulationsData{T,N,P} = ArrayPartition{T,<:NTuple{P,<:WCMPopulationData{T,N}}}
-Base.zero(data::DATA) where {T,N,A,DATA <: WCMPopulationData{T,N,A}}  = DATA(zero(data.x))
-Simulation73.initial_value(wcm::WCMSpatial{T,D,P}) where {T,D,P} = ArrayPartition([WCMPopulationData(zero(wcm.space)) for i in 1:P]...)
+# struct WCMPopulationData{T,N,A<:AbstractArray{T,N}}
+#     x::A
+# end
+# const WCMPopulationsData{T,N,P} = ArrayPartition{T,<:NTuple{P,<:WCMPopulationData{T,N}}}
+const WCMPopulationData{T,N} = AbstractArray{T,N}
+const WCMPopulationsData{T,N} = AbstractHeterogeneousPopulationData{T,N}
+@inline population(A::WCMPopulationsData{T,N}, i) where {T,N} = slice_first(A, i)
+#Base.zero(data::DATA) where {T,N,A,DATA <: WCMPopulationData{T,N,A}}  = DATA(zero(data.x))
+#Simulation73.initial_value(wcm::WCMSpatial{T,D,P}) where {T,D,P} = ArrayPartition([WCMPopulationData(zero(wcm.space)) for i in 1:P]...)
+Simulation73.initial_value(wcm::WCMSpatial{T,D,P}) where {T,D,P} = zeros(T, P, size(model.space)...)
 
 @memoize function make_linear_mutator(model::WCMSpatial{T,N,P}) where {T,N,P}
-    function linear_mutator!(dA::PopsData, A::PopsData, t::T) where {T,D,PopsData <: AbstractArray{<:WCMPopulationData{T,D},1}}
+    function linear_mutator!(dA::PopsData, A::PopsData, t::T) where {T,D,PopsData <: WCMPopulationsData}
         @views for i in 1:P
-            dA[i] .*= model.β[i] .* (1.0 .- A[i])
-            dA[i] .+= -model.α[i] .* A[i]
-            dA[i] ./= model.τ[i]
+            dAi = population(dA,i); Ai = population(A,i)
+            dAi .*= model.β[i] .* (1.0 .- Ai)
+            dAi .+= -model.α[i] .* Ai
+            dAi ./= model.τ[i]
         end
     end
 end
