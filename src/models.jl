@@ -32,11 +32,10 @@ end
 # end
 # const WCMPopulationsData{T,N,P} = ArrayPartition{T,<:NTuple{P,<:WCMPopulationData{T,N}}}
 const WCMPopulationData{T,N} = AbstractArray{T,N}
-const WCMPopulationsData{T,N} = AbstractHeterogeneousPopulationData{T,N}
-@inline population(A::WCMPopulationsData{T,N}, i) where {T,N} = slice_first(A, i)
+const WCMPopulationsData{T,N} = AbstractArray{T,N}
 #Base.zero(data::DATA) where {T,N,A,DATA <: WCMPopulationData{T,N,A}}  = DATA(zero(data.x))
 #Simulation73.initial_value(wcm::WCMSpatial{T,D,P}) where {T,D,P} = ArrayPartition([WCMPopulationData(zero(wcm.space)) for i in 1:P]...)
-Simulation73.initial_value(wcm::WCMSpatial{T,D,P}) where {T,D,P} = zeros(T, P, size(model.space)...)
+Simulation73.initial_value(wcm::WCMSpatial{T,D,P}) where {T,D,P} = zeros(T, P, size(wcm.space)...)
 
 @memoize function make_linear_mutator(model::WCMSpatial{T,N,P}) where {T,N,P}
     function linear_mutator!(dA::PopsData, A::PopsData, t::T) where {T,D,PopsData <: WCMPopulationsData}

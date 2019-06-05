@@ -14,6 +14,8 @@ export WCMSpatial
 
 export AbstractStimulus, SharpBumpStimulus, NoisyStimulus, GaussianNoiseStimulus, NoStimulus
 
+export WCMPopulationData, WCMPopulationsData
+
 include("helpers.jl")
 include("stimulus.jl")
 include("models.jl")
