@@ -24,8 +24,6 @@ end
 abstract type TransientBumpStimulus{T,N} <: AbstractStimulus{T,N} end
 function NeuralModels.make_stimulus(bump::TBS, space::AbstractSpace{T,N}) where {T, N, TBS<:TransientBumpStimulus{T,N}}
     bump_frame = on_frame(bump, space)
-    onset = bump.time_window[1]
-    offset = bump.time_window[2]
     function stimulus!(val, t)
         for window in bump.time_windows
             if window[1] <= t < window[2]
@@ -43,12 +41,12 @@ struct SharpBumpStimulus{T,N} <: TransientBumpStimulus{T,N}
 end
 
 function SharpBumpStimulus{T,N}(; strength::T=nothing, width::T=nothing,
-        duration=nothing, time_window=nothing, center=NTuple{N,T}(zero(T) for i in 1:N)) where {T,N}
-    if time_window == nothing
+        duration=nothing, time_windows=nothing, center=NTuple{N,T}(zero(T) for i in 1:N)) where {T,N}
+    if time_windows == nothing
         return SharpBumpStimulus{T,N}(width, strength, [(zero(T), duration)], center)
     else
         @assert duration == nothing
-        return SharpBumpStimulus{T,N}(width, strength, time_window, center)
+        return SharpBumpStimulus{T,N}(width, strength, time_windows, center)
     end
 end
 
