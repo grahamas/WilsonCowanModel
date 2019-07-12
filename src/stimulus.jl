@@ -13,7 +13,7 @@ function GaussianNoiseStimulus{T,N}(; SNR::T=0.0, mean::T=0.0) where {T,N}
     GaussianNoiseStimulus{T,N}(mean, sd)
 end
 function gaussian_noise!(val::AT, mean::T, sd::T) where {T, AT<:AbstractArray{T}} # assumes signal power is 0db
-    randn!(val)
+    val .+= randn(size(val))
     val .*= sd
     val .+= mean
 end
