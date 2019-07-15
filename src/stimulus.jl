@@ -22,7 +22,7 @@ function NeuralModels.make_stimulus(wns::GaussianNoiseStimulus{T}, space::Abstra
 end
 
 abstract type TransientBumpStimulus{T,N} <: AbstractStimulus{T,N} end
-function NeuralModels.make_stimulus(bump::TBS, space::AbstractSpace{T,N}) where {T, N, TBS<:TransientBumpStimulus{T,N}}
+function NeuralModels.make_stimulus(bump::TBS, space::AbstractSpace{T}) where {T, TBS<:TransientBumpStimulus{T}}
     bump_frame = on_frame(bump, space)
     function stimulus!(val, t)
         for window in bump.time_windows
@@ -33,11 +33,11 @@ function NeuralModels.make_stimulus(bump::TBS, space::AbstractSpace{T,N}) where 
     end
 end
 
-struct SharpBumpStimulus{T,N} <: TransientBumpStimulus{T,N}
+struct SharpBumpStimulus{T,N_CDT} <: TransientBumpStimulus{T,N_CDT}
     width::T
     strength::T
     time_windows::Array{Tuple{T,T},1}
-    center::NTuple{N,T}
+    center::NTuple{N_CDT,T}
 end
 
 function SharpBumpStimulus{T,N}(; strength::T=nothing, width::T=nothing,
@@ -50,7 +50,7 @@ function SharpBumpStimulus{T,N}(; strength::T=nothing, width::T=nothing,
     end
 end
 
-function on_frame(sbs::SharpBumpStimulus{T,N}, space::AbstractSpace{T,N}) where {T,N}
+function on_frame(sbs::SharpBumpStimulus{T,N_CDT}, space::AbstractSpace{T,N_ARR,N_CDT}) where {T,N_ARR,N_CDT}
     coords = coordinates(space)
     frame = zero(space)
     half_width = sbs.width / 2.0
