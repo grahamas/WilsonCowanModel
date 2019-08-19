@@ -1,7 +1,7 @@
 # Rename to remove N redundancy
 struct WCMSpatial{T,N_CDT,P,C<:AbstractConnectivity{T,N_CDT},
                             L<:AbstractNonlinearity{T},
-                            S<:AbstractStimulus{T,N_CDT},} <: AbstractModel{T}
+                            S<:AbstractStimulus{T,N_CDT},} <: AbstractModel{T,N_CDT,P}
     α::SVector{P,T}
     β::SVector{P,T}
     τ::SVector{P,T}
@@ -19,7 +19,7 @@ function WCMSpatial{T,N_CDT,P}(;
             T,P,N_CDT,Str<:AbstractString,C<:AbstractConnectivity{T},
             L<:AbstractNonlinearity{T},S<:AbstractStimulus{T}
         }
-    WCMSpatial{T,N_CDT,P,C,L,S,SP}(SVector{P,T}(α), SVector{P,T}(β), SVector{P,T}(τ),
+    WCMSpatial{T,N_CDT,P,C,L,S}(SVector{P,T}(α), SVector{P,T}(β), SVector{P,T}(τ),
         SMatrix{P,P,C}(connectivity), SVector{P,L}(nonlinearity),
         SVector{P,S}(stimulus), SVector{P,Str}(pop_names)
     )
