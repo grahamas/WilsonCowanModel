@@ -1,3 +1,5 @@
+# NOTE: P is currently the TRAILING dimension. I haven't revised comments yet.
+
 # Rename to remove N redundancy
 struct WCMSpatial{T,N_CDT,P,C<:AbstractConnectivity{T,N_CDT},
                             L<:AbstractNonlinearity{T},
