@@ -1,80 +1,78 @@
 # NOTE: P is currently the TRAILING dimension. I haven't revised comments yet.
 
 # Rename to remove N redundancy
-struct WCMSpatial{T,N_CDT,P,C<:AbstractConnectivity{T,N_CDT},
-                            L<:AbstractNonlinearity{T},
-                            S<:AbstractStimulus{T,N_CDT},} <: AbstractModel{T,N_CDT,P}
-    α::SVector{P,T}
-    β::SVector{P,T}
-    τ::SVector{P,T}
-    connectivity::SMatrix{P,P,C}
-    nonlinearity::SVector{P,L}
-    stimulus::SVector{P,S}
-    pop_names::SVector{P,String}
+struct WCMSpatial{T,N_CDT,P,
+        SCALARS<:AbstractPopulationActionsParameters{P,T},
+        CONN<:AbstractPopulationInteractionsParameters{P,<:AbstractConnectivity{T,N_CDT}},
+        NONL<:AbstractPopulationActionsParameters{P,<:AbstractNonlinearity{T}},
+        STIM<:AbstractPopulationActionsParameters{P,<:AbstractStimulus{T,N_CDT}}
+    } <: AbstractModel{T,N_CDT,P}
+    α::SCALARS
+    β::SCALARS
+    τ::SCALARS
+    connectivity::CONN
+    nonlinearity::NONL
+    stimulus::STIM
+    pop_names::NTuple{P,String}
+    function WCMSpatial(α::S,β::S,τ::S,
+                        conn::CONN,nonl::NONL,stim::STIM,
+                        pop_names::NTuple{P,String}) where {
+            T,N_CDT,P,S<:AbstractPopulationParameters{P,T},
+            CONN<:AbstractPopulationInteractionsParameters{P,<:AbstractConnectivityParameter{T,N_CDT}},
+            NONL<:AbstractPopulationActions{P,<:AbstractNonlinearity{T}},
+            STIM<:AbstractPopulationActionsParameters{P,<:AbstractStimulusParameter{T,N_CDT}}
+        }
+        new{T,N,P,S,CONN,NONL,STIM}(α,β,τ,conn,nonl,stim,pop_names)
+    end
+end
+struct WCMSpatialAction{T,N_CDT,P,
+        SCALARS<:NTuple{N,T},
+        CONN<:AbstractPopulationInteractions{P,<:AbstractConnectivity{T,N_CDT}},
+        NONL<:AbstractPopulationActions{P,<:AbstractNonlinearity{T}},
+        STIM<:AbstractPopulationActions{P,<:AbstractStimulus{T,N_CDT}} <: AbstractAction{T,N_CDT}
+    α::SCALARS
+    β::SCALARS
+    τ::SCALARS
+    connectivity::CONN
+    nonlinearity::NONL
+    stimulus::STIM
+    pop_names::NTuple{P,String}
+    function WCMSpatial(α::S,β::S,τ::S,
+                        conn::CONN,nonl::NONL,stim::STIM,
+                        pop_names::NTuple{P,String}) where {
+            T,N_CDT,P,
+            S<:NTuple{N,T},
+            CONN<:AbstractPopulationInteractions{P,<:AbstractConnectivity{T,N_CDT}},
+            NONL<:AbstractPopulationActions{P,<:AbstractNonlinearity{T}},
+            STIM<:AbstractPopulationActions{P,<:AbstractStimulus{T,N_CDT}} <: AbstractAction{T,N_CDT}
+        }
+        new{T,N,P,S,CONN,NONL,STIM}(α,β,τ,conn,nonl,stim,pop_names)
+    end
 end
 
-function WCMSpatial{T,N_CDT,P}(;
-        pop_names::Array{Str,1}, α::Array{T,1}, β::Array{T,1},
-        τ::Array{T,1}, connectivity::Array{C,2}, nonlinearity::Array{L,1},
-        stimulus::Array{S,1}
-        ) where {
-            T,P,N_CDT,Str<:AbstractString,C<:AbstractConnectivity{T},
-            L<:AbstractNonlinearity{T},S<:AbstractStimulus{T}
-        }
-    WCMSpatial{T,N_CDT,P,C,L,S}(SVector{P,T}(α), SVector{P,T}(β), SVector{P,T}(τ),
-        SMatrix{P,P,C}(connectivity), SVector{P,L}(nonlinearity),
-        SVector{P,S}(stimulus), SVector{P,Str}(pop_names)
+function WCMSpatial(; pop_names::NTuple{N_pops,String}, α::NTuple{N_pops,T}, 
+        β::NTuple{N_pops,T}, τ::NTuple{N_pops,T}, 
+        connectivity::Array, nonlinearity::NTuple{N_pops}, stimulus::NTuple{N_pops}
+        ) where {T,P}
+    PopParams = (x) -> PopulationParameters(x...)
+    WCMSpatial(
+        α, β, τ,
+        PopParams(connectivity), PopParams(nonlinearity),
+        PopParams(stimulus), pop_names
     )
 end
+(wcm::WCMSpatial)(space::AbstractSpace) = WCMSpatialAction(wcm.α, wcm.β, wcm.τ,
+    wcm.connectivity(space), wcm.nonlinearity, wcm.stimulus(space), pop_names)
 
-# struct WCMPopulationData{T,N,A<:AbstractArray{T,N}}
-#     x::A
-# end
-const WCMPopulationData{T,N} = AbstractArray{T,N}
-const WCMPopulationsData{T,N} = AbstractArray{T,N}
-
-@memoize function make_linear_mutator(model::WCMSpatial{T,N_CDT,P}) where {T,N_CDT,P}
-    function linear_mutator!(dA::PopsData, A::PopsData, t::T) where {T,PopsData <: WCMPopulationsData}
-        @views for i in 1:P
-            dAi = population(dA,i); Ai = population(A,i)
-            dAi .*= model.β[i] .* (1.0 .- Ai)
-            dAi .+= -model.α[i] .* Ai
-            dAi ./= model.τ[i]
-        end
+function (wcm::WCMSpatialAction{T,N,P})(dA,A,t)
+    wcm.stimulus(dA, A, t)
+    wcm.connectivity(dA, A, t)
+    wcm.nonlinearity(dA, A, t)
+    for i in 1:P
+        dAi = population(dA,i); Ai = population(A,i)
+        dAi .*= wcm.β[i] .* (1.0 .- Ai)
+        dAi .+= -wcm.α[i] .* Ai
+        dAi ./= wcm.τ[i]
     end
 end
-
-@memoize function memoized_make_mutator(args...)
-    make_mutator(args...)
-end
-
-function Simulation73.make_system_mutator(model::WCMSpatial, space::AbstractSpace)
-    stimulus_mutator! = memoized_make_mutator(model.stimulus, space)
-    connectivity_mutator! = memoized_make_mutator(model.connectivity, space)
-    nonlinearity_mutator! = memoized_make_mutator(model.nonlinearity)
-    linear_mutator! = make_linear_mutator(model)
-    function system_mutator!(dA, A, p, t)
-        dA .= zero(eltype(dA))
-        stimulus_mutator!(dA, A, t)
-        connectivity_mutator!(dA, A, t)
-        nonlinearity_mutator!(dA, A, t)
-        linear_mutator!(dA, A, t)
-    end
-end
-
-### Thoughts on connectivity
-# TODO move implementation of connectivity op to connectivity.jl
-# FFT is *much* faster, so ideally would use that. However, the inner
-# dimensions pose a challenge. If the dimensions were entirely independent
-# (consider the circle for dir tuning) we could probably just convolve the average
-# on the circle, and add that to the square appropriately. However, we want the
-# anisotropic connectivity also to decay with distance (just not as fast) so we
-# can't simply take the average. Buttttt suppose Kd(x) is the kernel
-# corresponding to the isotropic component of the anisotropic connectivity, i.e.
-# long-space-constant exponential decay, ancd Kt(θ) is the kernel corresponding
-# to the anisotropic direction tuning, i.e. short-space-constant (a.k.a
-# short-angle-constant) exponential decay. In practice, then, while direction
-# tuning may live on the circle, connectivity due to direction tuning lives on
-# the hypercylinder, where the connectivity kernel is K(x,θ) = Kd(x) Kt(θ).
-
-# Note: FFT of open surface (e.g. torus, circle) is just FFT of tiled.
+        
