@@ -29,7 +29,7 @@ end
 struct WCMSpatialAction{T,N_CDT,P,
         SCALARS<:NTuple{N_CDT,T},
         CONN<:PopInteract{P,<:AbstractConnectivityAction{T,N_CDT}},
-        NONL<:PopAct{P,<:AbstractNonlinearity{T}},
+        NONL<:PopAct{P},#,<:AbstractNonlinearity{T}},
         STIM<:PopAct{P}#,<:AbstractStimulusAction{T,N_CDT}}
         } <: AbstractSpaceAction{T,N_CDT}
     α::SCALARS
