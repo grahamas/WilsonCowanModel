@@ -6,7 +6,7 @@ struct WCMSpatial{T,N_CDT,P,
         CONN<:PopInteractParam{P,<:AbstractConnectivityParameter{T,N_CDT}},
         NONL<:PopAct{P,<:AbstractNonlinearity{T}},
         STIM<:PopActParam{P,<:AbstractStimulusParameter{T}}
-    } <: AbstractModel{T,N_CDT,P}
+    } <: AbstractODEModel{T,N_CDT,P}
     α::SCALARS
     β::SCALARS
     τ::SCALARS
