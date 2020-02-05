@@ -2,7 +2,7 @@
 
 # Rename to remove N redundancy
 struct WCMSpatial{T,N_CDT,P,
-        SCALARS<:NTuple{N_CDT,T},
+        SCALARS<:NTuple{P,T},
         CONN<:PopInteractParam{P,<:AbstractConnectivityParameter{T,N_CDT}},
         NONL<:PopAct{P,<:AbstractNonlinearity{T}},
         STIM<:PopActParam{P,<:AbstractStimulusParameter{T}}
@@ -18,7 +18,7 @@ struct WCMSpatial{T,N_CDT,P,
                         conn::CONN,nonl::NONL,stim::STIM,
                         pop_names::NTuple{P,String}) where {
             T,N_CDT,P,
-            SCALARS<:NTuple{N_CDT,T},
+            SCALARS<:NTuple{P,T},
             CONN<:PopInteractParam{P,<:AbstractConnectivityParameter{T,N_CDT}},
             NONL<:PopAct{P,<:AbstractNonlinearity{T}},
             STIM<:PopActParam{P,<:AbstractStimulusParameter{T}}
@@ -27,7 +27,7 @@ struct WCMSpatial{T,N_CDT,P,
     end
 end
 struct WCMSpatialAction{T,N_CDT,P,
-        SCALARS<:NTuple{N_CDT,T},
+        SCALARS<:NTuple{P,T},
         CONN<:PopInteract{P,<:AbstractConnectivityAction{T,N_CDT}},
         NONL<:PopAct{P},#,<:AbstractNonlinearity{T}},
         STIM<:PopAct{P}#,<:AbstractStimulusAction{T,N_CDT}}
@@ -43,7 +43,7 @@ struct WCMSpatialAction{T,N_CDT,P,
                         conn::CONN,nonl::NONL,stim::STIM,
                         pop_names::NTuple{P,String}) where {
             T,N_CDT,P,
-            S<:NTuple{N_CDT,T},
+            S<:NTuple{P,T},
             CONN<:PopInteract{P,<:AbstractConnectivityAction{T,N_CDT}},
             NONL<:PopAct{P,<:AbstractNonlinearity{T}},
             STIM<:PopAct{P,<:AbstractStimulusAction{T,N_CDT}}
@@ -56,7 +56,6 @@ function WCMSpatial(; pop_names::NTuple{N_pops,String}, α::NTuple{N_pops,T},
         β::NTuple{N_pops,T}, τ::NTuple{N_pops,T}, 
         connectivity::PopInteractParam{N_pops,C}, nonlinearity::PopAct{N_pops,NL}, stimulus::PopActParam{N_pops,S}
         ) where {T,N_pops,C<:AbstractConnectivityParameter{T},NL<:AbstractNonlinearity{T},S<:AbstractStimulusParameter{T}}
-    PopParams = (x) -> PopulationParameters(x...)
     WCMSpatial(
         α, β, τ,
         connectivity, nonlinearity,
