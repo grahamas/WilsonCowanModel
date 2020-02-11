@@ -52,10 +52,10 @@ struct WCMSpatialAction{T,N_CDT,P,
     end
 end
 
-function WCMSpatial(; pop_names::NTuple{N_pops,String}, α::NTuple{N_pops,T}, 
-        β::NTuple{N_pops,T}, τ::NTuple{N_pops,T}, 
-        connectivity::PopInteractParam{N_pops,C}, nonlinearity::PopAct{N_pops,NL}, stimulus::PopActParam{N_pops,S}
-        ) where {T,N_pops,C<:AbstractConnectivityParameter{T},NL<:AbstractNonlinearity{T},S<:AbstractStimulusParameter{T}}
+function WCMSpatial(; pop_names, α, 
+        β, τ, 
+        connectivity, nonlinearity, stimulus
+        )
     WCMSpatial(
         α, β, τ,
         connectivity, nonlinearity,
