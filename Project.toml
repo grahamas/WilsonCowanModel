@@ -6,6 +6,7 @@ version = "0.1.0"
 [deps]
 DifferentialEquations = "0c46a032-eb83-5123-abaf-570d42b7fbaa"
 IterTools = "c8e1da08-722c-5040-9ed9-7db0dc04731e"
+JuliaDB = "a93385a2-3734-596a-9a66-3cfbb77141e6"
 MacroTools = "1914dd2f-81c6-5fcd-8719-6d5c9610ff09"
 Memoize = "c03570c3-d221-55d1-a50c-7939bbd78826"
 NeuralModels = "a199b2c4-7a51-11e9-2fe1-b9a1a5fe2912"
