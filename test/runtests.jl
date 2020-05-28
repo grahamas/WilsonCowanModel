@@ -1,5 +1,7 @@
 using Test, WilsonCowanModel
 
+include("src/test_sanity.jl")
+
 @EI_kw_example function example(N_ARR=2,N_CDT=2,P=2; SNR_scale=80.0, stop_time=100.0,
                                                      Aee=16.0, See=25.0,
                                                      iiA=sqrt((27.0/4.0)/18.2), iiS=1.0,
