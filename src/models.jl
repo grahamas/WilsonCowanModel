@@ -3,7 +3,7 @@
 # Rename to remove N redundancy
 struct WCMSpatial{T,N_CDT,P,
         SCALARS<:NTuple{P,T},
-        CONN<:PopInteractParam{P,<:AbstractConnectivityParameter{T,N_CDT}},
+        CONN<:PopInteractParam{P},#<:MaybeNoOpComposite{T,<:AbstractConnectivityParameter{T,N_CDT}}},
         NONL<:PopAct{P,<:AbstractNonlinearity{T}},
         STIM<:PopActParam{P,<:AbstractStimulusParameter{T}}
     } <: AbstractODEModel{T,N_CDT,P}
@@ -14,12 +14,12 @@ struct WCMSpatial{T,N_CDT,P,
     nonlinearity::NONL
     stimulus::STIM
     pop_names::NTuple{P,String}
-    function WCMSpatial(α::SCALARS,β::SCALARS,τ::SCALARS,
+    function WCMSpatial{N_CDT,P}(α::SCALARS,β::SCALARS,τ::SCALARS,
                         conn::CONN,nonl::NONL,stim::STIM,
                         pop_names::NTuple{P,String}) where {
             T,N_CDT,P,
             SCALARS<:NTuple{P,T},
-            CONN<:PopInteractParam{P,<:AbstractConnectivityParameter{T,N_CDT}},
+            CONN<:PopInteractParam{P},#,<:MaybeNoOpComposite{T,AbstractConnectivityParameter{T,N_CDT}}},
             NONL<:PopAct{P,<:AbstractNonlinearity{T}},
             STIM<:PopActParam{P,<:AbstractStimulusParameter{T}}
         }
@@ -28,7 +28,7 @@ struct WCMSpatial{T,N_CDT,P,
 end
 struct WCMSpatialAction{T,N_CDT,P,
         SCALARS<:NTuple{P,T},
-        CONN<:PopInteract{P,<:AbstractConnectivityAction{T,N_CDT}},
+        CONN<:PopInteract{P},#,<:AbstractConnectivityAction{T,N_CDT}},
         NONL<:PopAct{P},#,<:AbstractNonlinearity{T}},
         STIM<:PopAct{P}#,<:AbstractStimulusAction{T,N_CDT}}
         } <: AbstractSpaceAction{T,N_CDT}
@@ -39,36 +39,31 @@ struct WCMSpatialAction{T,N_CDT,P,
     nonlinearity::NONL
     stimulus::STIM
     pop_names::NTuple{P,String}
-    function WCMSpatialAction(α::S,β::S,τ::S,
-                        conn::CONN,nonl::NONL,stim::STIM,
-                        pop_names::NTuple{P,String}) where {
-            T,N_CDT,P,
-            S<:NTuple{P,T},
-            CONN<:PopInteract{P,<:AbstractConnectivityAction{T,N_CDT}},
-            NONL<:PopAct{P,<:AbstractNonlinearity{T}},
-            STIM<:PopAct{P,<:AbstractStimulusAction{T,N_CDT}}
-        }
-        new{T,N_CDT,P,S,CONN,NONL,STIM}(α,β,τ,conn,nonl,stim,pop_names)
-    end
 end
 
-function WCMSpatial(; pop_names, α, 
+function WCMSpatial{N_CDT,P}(; pop_names, α, 
         β, τ, 
         connectivity, nonlinearity, stimulus
-        )
-    WCMSpatial(
+       ) where {N_CDT,P}
+    WCMSpatial{N_CDT,P}(
         α, β, τ,
         connectivity, nonlinearity,
         stimulus, pop_names
     )
 end
-function (wcm::WCMSpatial)(space::AbstractSpace)
-    return WCMSpatialAction(wcm.α, wcm.β, wcm.τ,
-    wcm.connectivity(space), wcm.nonlinearity, wcm.stimulus(space), wcm.pop_names)
+function (wcm::WCMSpatial{T,N_CDT,P,SCALARS})(space::AbstractSpace{T}) where {T,N_CDT,P,SCALARS}
+    conn = wcm.connectivity(space)
+    nonl = wcm.nonlinearity
+    stim = wcm.stimulus(space)
+    CONN = typeof(conn)
+    NONL = typeof(nonl)
+    STIM = typeof(stim)
+    return WCMSpatialAction{T,N_CDT,P,SCALARS,CONN,NONL,STIM}(wcm.α, wcm.β, wcm.τ,
+    conn, nonl, stim, wcm.pop_names)
 end
 
 # TODO: parametric annotations
-function (wcm::WCMSpatialAction{T,N,P})(dA,A,p,t) where {T,N,P}
+function (wcm::WCMSpatialAction{T,N_CDT,P})(dA,A,p,t) where {T,N_CDT,P}
     wcm.stimulus(dA, A, t)
     wcm.connectivity(dA, A, t)
     wcm.nonlinearity(dA, A, t)
