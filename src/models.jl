@@ -61,8 +61,6 @@ function (wcm::WCMSpatial{T,N_CDT,P,SCALARS})(space::AbstractSpace{T}) where {T,
     return WCMSpatialAction{T,N_CDT,P,SCALARS,CONN,NONL,STIM}(wcm.α, wcm.β, wcm.τ,
     conn, nonl, stim, wcm.pop_names)
 end
-
-# TODO: parametric annotations
 function (wcm::WCMSpatialAction{T,N_CDT,P})(dA,A,p,t) where {T,N_CDT,P}
     wcm.stimulus(dA, A, t)
     wcm.connectivity(dA, A, t)
