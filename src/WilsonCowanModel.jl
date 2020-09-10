@@ -4,11 +4,7 @@ using Parameters
 using StaticArrays
 using Simulation73
 import Simulation73: target_loss
-using Random
-using MacroTools, IterTools
-using TensorOperations
 using NeuralModels
-using RecursiveArrayTools
 
 export WCMSpatial
 
