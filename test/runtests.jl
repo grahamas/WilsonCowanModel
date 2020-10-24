@@ -1,44 +1,69 @@
-using Test, WilsonCowanModel
+using Test, WilsonCowanModel, Simulation73, NeuralModels,
+  OrdinaryDiffEq
 
 include("src/test_sanity.jl")
 
-@EI_kw_example function example(N_ARR=2,N_CDT=2,P=2; SNR_scale=80.0, stop_time=100.0,
-                                                     Aee=16.0, See=25.0,
-                                                     iiA=sqrt((27.0/4.0)/18.2), iiS=1.0,
-                                                     ioA=1.0/(4iiA), ioS=1.0,
-                                                     caA=27.0/(16iiA), caS=(27.0/25.0),
-                                                     Aii=Aee*iiA*ioA, Sii=See*iiS*ioS,
-                                                     Aie=Aee*iiA*caA, Sie=See*iiS*caS,
-                                                     Aei=Aee*ioA*caA, Sei=See*ioS*caS,
-                                                     n=35, x=350.0, stim_strength=1.2)
-  simulation = Simulation(
-    WCMSpatial{Float64,N_CDT,P}(;
-      pop_names = ["E", "I"],
-      α = [1.0, 1.0],
-      β = [1.0, 1.0],
-      τ = [10.0, 10.0],
-      nonlinearity = pops(SigmoidNonlinearity{Float64};
-        a = [1.2, 1.0],
-        θ = [2.6, 8.0]),
-      stimulus = pops(NoisyStimulus{Float64,N_CDT};
-          strength = [stim_strength,stim_strength],
-          width = [28.1, 28.1],
-          SNR = [1.0, 1.0] .* SNR_scale,
-          time_windows = [[(0.0, 45.0)], [(0.0, 45.0)]],
-          stim_type=[SharpBumpStimulus{Float64,N_CDT}, SharpBumpStimulus{Float64,N_CDT}]),
-      connectivity = FFT.(pops(ExpSumSqDecayingConnectivity{Float64,N_CDT};
-          amplitude = [Aee -Aei;
-                       Aie -Aii],
-          spread = [(See,See) (Sei,Sei);
-                    (Sie,Sie) (Sii,Sii)]
-          ))
-      );
-      space = PeriodicLattice{Float64,N_ARR}(; n_points=(n,n), extent=(x,x)),
-      save_idxs = RadialSlice(),
-      tspan = (0.0,stop_time),
-      dt = 1.0,
-      algorithm=Tsit5()
-  )
+const ABS_STOP=300.0
+const X_PROP = 0.9
+example = (
+                  N_ARR=1,N_CDT=1,P=2; 
+                  SNR_scale=80.0, stop_time=ABS_STOP,
+                  Aee=70.0, See=25.0,
+                  Aii=2.0, Sii=27.0,
+                  Aie=35.0, Sie=25.0,
+                  Aei=70.0, Sei=27.0,
+                  n_lattice=512, x_lattice=1400.0, 
+                  aE=1.2, θE=6.0,
+                  aI=1.0, θI=11.4,
+                  stim_strength=6.0,
+                  stim_radius=14.0,
+                  stim_duration=7.0,
+                  pop_names = ("E", "I"),
+                  velocity_threshold=1e-7,
+                  n_traveling_frames_threshold=50,
+                  α = (1.0, 1.0),
+                  β = (1.0, 1.0),
+                  τ = (3.0, 3.0),
+                  nonlinearity = pops(RectifiedSigmoidNonlinearity;
+                      θ = [θE, θI],
+                      a = [aE, aI]
+                  ),
+                  stimulus = pops(CircleStimulusParameter;
+                      strength = [stim_strength, stim_strength],
+                      radius = [stim_radius, stim_radius],
+                      time_windows = [[(0.0, stim_duration)], [(0.0, stim_duration)]],
+                      baseline=[0.0, 0.0]
+                  ),
+                  connectivity = FFTParameter(pops(GaussianConnectivityParameter;
+                      amplitude = [Aee -Aei;
+                                   Aie -Aii],
+                      spread = [(See,) (Sei,);
+                                (Sie,) (Sii,)]
+                     )
+                  ),
+                  space = PeriodicLattice{Float64,N_ARR}(; n_points=(n_lattice,), 
+                                                           extent=(x_lattice,)),
+                  tspan = (0.0,stop_time),
+                  algorithm=Tsit5(),
+                  save_idxs=nothing,
+                  other_opts...
+            ) -> begin
+    Simulation(
+        WCMSpatial{N_CDT,P}(;
+            pop_names = pop_names,
+            α = α,
+            β = β,
+            τ = τ,
+            nonlinearity = nonlinearity,
+            stimulus = stimulus,
+            connectivity = connectivity
+           );
+        space = space,
+        tspan = tspan,
+        algorithm = algorithm,
+        save_idxs = save_idxs,
+        other_opts...
+    )
 end
 
 
