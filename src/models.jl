@@ -4,7 +4,7 @@
 struct WCMSpatial{T,N_CDT,P,
         SCALARS<:NTuple{P,T},
         CONN<:PopInteractParam{P},#<:MaybeNoOpComposite{T,<:AbstractConnectivityParameter{T,N_CDT}}},
-        NONL<:PopAct{P,<:AbstractNonlinearity{T}},
+        NONL<:PopActParam{P},
         STIM<:PopActParam{P,<:AbstractStimulusParameter{T}}
     } <: AbstractODEModel{T,N_CDT,P}
     α::SCALARS
@@ -20,7 +20,7 @@ struct WCMSpatial{T,N_CDT,P,
             T,N_CDT,P,
             SCALARS<:NTuple{P,T},
             CONN<:PopInteractParam{P},#,<:MaybeNoOpComposite{T,AbstractConnectivityParameter{T,N_CDT}}},
-            NONL<:PopAct{P,<:AbstractNonlinearity{T}},
+            NONL<:PopActParam{P},#,<:AbstractNonlinearityParameter{T}},
             STIM<:PopActParam{P,<:AbstractStimulusParameter{T}}
         }
         new{T,N_CDT,P,SCALARS,CONN,NONL,STIM}(α,β,τ,conn,nonl,stim,pop_names)
@@ -29,7 +29,7 @@ end
 struct WCMSpatialAction{T,N_CDT,P,
         SCALARS<:NTuple{P,T},
         CONN<:PopInteract{P},#,<:AbstractConnectivityAction{T,N_CDT}},
-        NONL<:PopAct{P},#,<:AbstractNonlinearity{T}},
+        NONL<:PopAct{P},#,<:AbstractNonlinearityParameter{T}},
         STIM<:PopAct{P}#,<:AbstractStimulusAction{T,N_CDT}}
         } <: AbstractSpaceAction{T,N_CDT}
     α::SCALARS
@@ -53,7 +53,7 @@ function WCMSpatial{N_CDT,P}(; pop_names, α,
 end
 function (wcm::WCMSpatial{T,N_CDT,P,SCALARS})(space::AbstractSpace{T}) where {T,N_CDT,P,SCALARS}
     conn = wcm.connectivity(space)
-    nonl = wcm.nonlinearity
+    nonl = wcm.nonlinearity(space)
     stim = wcm.stimulus(space)
     CONN = typeof(conn)
     NONL = typeof(nonl)
@@ -73,3 +73,4 @@ function (wcm::WCMSpatialAction{T,N_CDT,P})(dA,A,p,t) where {T,N_CDT,P}
     end
 end
         
+

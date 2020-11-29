@@ -15,3 +15,5 @@ _research
 _slurm
 plots
 Manifest.toml
+
+*.mem
