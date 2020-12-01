@@ -8,8 +8,6 @@ results
 *.png
 *_res.jld2
 
-.*
-
 data
 _research
 _slurm
