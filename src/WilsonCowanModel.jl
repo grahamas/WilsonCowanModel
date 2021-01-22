@@ -12,6 +12,7 @@ export WCMPopulationData, WCMPopulationsData
 
 include("helpers.jl")
 include("models.jl")
+include("nullclines.jl")
 
 # using Optim
 # export MatchExample, StretchExample, SpatioTemporalFnTarget, @optim_st_target
