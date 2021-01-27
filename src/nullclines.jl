@@ -24,6 +24,7 @@ us = -0.1:0.01:1.0; vs = copy(us);
     τ
     decaye
     decayi
+    nonl_norm
 end
 
 @with_kw struct WCMParams <: AbstractWCMParams
@@ -68,29 +69,8 @@ end
     τ
     decaye
     decayi
+    nonl_norm
 end
-
-ermentrout_monotonic_params = HE2018Params(;
-    Aee=1., Aie=1., Aei=1.5, Aii=0.25,
-    θef=0.125, θif=0.4, τ=0.4, 
-    aef=50., aif=50.,
-    decaye=1., decayi=1.
-
-)
-
-ermentrout_depblock_params = HE2018DepParams(;
-    Aee=1., Aie=1.2, Aei=1.5, Aii=0.25,
-    θef=0.125, θif=0.4, θib=0.7, τ=0.4, 
-    aef=50., aif=50., aib=50.,
-    decaye=0.5, decayi=1.
-)
-
-tws_params = WCMDepParams(;
-    Aee=70., Aie=35., Aei=70., Aii=70.,
-    θef=6., θif=7., θib=1., τ=1., 
-    aef=1., aif=1., aib=1.,
-    decaye=1., decayi=1.
-)
 
 function wcm_du_defn(u, v, p::Union{HE2018DepParams,HE2018Params})
     @unpack Aee, Aei, θef, aef, decaye = p
@@ -115,29 +95,28 @@ function wcm_dv_defn(u, v, p::HE2018DepParams)
     dv
 end
 
-# FIXME
-# function wcm_du_defn(u, v, p::Union{WCMDepParams,WCMParams})
-#     @unpack Aee, Aei, θef, aef, decaye = p
-#     du = Aee * u - Aei * v
-#     du = (1-u) * simple_sigmoid_fn(du, aef, θef) - decaye * u
-#     du
-# end
+function wcm_du_defn(u, v, p::Union{WCMDepParams,WCMParams})
+    @unpack Aee, Aei, θef, aef, decaye = p
+    du = Aee * u + Aei * v
+    du = (1-u) * simple_sigmoid_fn(du, aef, θef) - decaye * u
+    du
+end
 
-# function wcm_dv_defn(u, v, p::WCMParams)
-#     @unpack  Aie, Aii, τ, θif, aif, decayi = p
-#     dv = Aie * u - Aii * v
-#     dv = (1-v) * (simple_sigmoid_fn(dv, aif, θif)) - decayi * v
-#     dv /= τ
-#     dv
-# end
+function wcm_dv_defn(u, v, p::WCMParams)
+    @unpack  Aie, Aii, τ, θif, aif, decayi = p
+    dv = Aie * u + Aii * v
+    dv = (1-v) * (NeuralModels.rectified_unzeroed_sigmoid_fn(dv, aif, θif)) - decayi * v
+    dv /= τ
+    dv
+end
 
-# function wcm_dv_defn(u, v, p::WCMDepParams)
-#     @unpack  Aie, Aii, τ, θif, θib, aif, aib, decayi = p
-#     dv = Aie * u - Aii * v
-#     dv = (1-v) * (simple_sigmoid_fn(dv, aif, θif) - simple_sigmoid_fn(dv, aib, θib)) - decayi * v
-#     dv /= τ
-#     dv
-# end
+function wcm_dv_defn(u, v, p::WCMDepParams)
+    @unpack  Aie, Aii, τ, θif, θib, aif, aib, decayi, nonl_norm = p
+    dv = Aie * u + Aii * v
+    dv = nonl_norm * (1-v) * (NeuralModels.rectified_unzeroed_sigmoid_fn(dv, aif, θif) - NeuralModels.rectified_unzeroed_sigmoid_fn(dv, aib, θib)) - decayi * v
+    dv /= τ
+    dv
+end
 
 function wcm!(F, u, p, t)
     F[1] = wcm_du_defn(u[1], u[2], p)
@@ -161,6 +140,7 @@ function (t::Type{<:AbstractWCMDepParams})(wcm::WCMSpatial{T,1,2}) where T
     nullcline_params[:aef] = wcm.nonlinearity.p1.a
     fsig = get_firing_sigmoid(wcm.nonlinearity.p2)
     bsig = get_blocking_sigmoid(wcm.nonlinearity.p2)
+    nullcline_params[:nonl_norm] = NeuralModels.calc_norm_factor(wcm.nonlinearity.p2.dosp)
     nullcline_params[:θif] = fsig.θ 
     nullcline_params[:θib] = bsig.θ
     nullcline_params[:aif] = fsig.a
@@ -187,3 +167,27 @@ function (t::Type{<:AbstractWCMParams})(wcm::WCMSpatial{T,1,2}) where T
     return t(; nullcline_params...)
 end
 (t::Type{<:AbstractNullclineParams})(sim::AbstractSimulation) = t(sim.model)
+
+wcm_nullcline_params(sim::AbstractSimulation) = wcm_nullcline_params(sim.model)
+function wcm_nullcline_params(model::WCMSpatial)
+    if model.nonlinearity.p2 isa AbstractSigmoidNonlinearityParameter
+        return WCMParams(model)
+    elseif model.nonlinearity.p2 isa AbstractDifferenceOfSigmoidsParameter
+        return WCMDepParams(model)
+    else
+        error("Unhandled nonlinearity $(typeof(model.nonlinearity))")
+    end
+end
+
+he2018_nullcline_params(sim::AbstractSimulation) = he2018_nullcline_params(sim.model)
+function he2018_nullcline_params(model::WCMSpatial)
+    if model.nonlinearity.p2 isa AbstractSigmoidNonlinearityParameter
+        return HE2018Params(model)
+    elseif model.nonlinearity.p2 isa AbstractDifferenceOfSigmoidsParameter
+        return HE2018DepParams(model)
+    else
+        error("Unhandled nonlinearity $(typeof(model.nonlinearity))")
+    end
+end
+
+export wcm_nullcline_params, he2018_nullcline_params
