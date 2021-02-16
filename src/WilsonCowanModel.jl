@@ -6,7 +6,9 @@ using Simulation73
 import Simulation73: target_loss
 using NeuralModels
 
-export WCMSpatial
+export AbstractWilsonCowanModel
+
+export WCMSpatial, HarrisErmentrout2018
 
 export WCMPopulationData, WCMPopulationsData
 
