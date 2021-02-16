@@ -55,6 +55,7 @@ end
     τ
     decaye
     decayi
+    nonl_norm
 end
 
 @with_kw struct HE2018Params <: AbstractWCMParams
@@ -69,7 +70,6 @@ end
     τ
     decaye
     decayi
-    nonl_norm
 end
 
 function wcm_du_defn(u, v, p::Union{HE2018DepParams,HE2018Params})
@@ -88,9 +88,9 @@ function wcm_dv_defn(u, v, p::HE2018Params)
 end
 
 function wcm_dv_defn(u, v, p::HE2018DepParams)
-    @unpack  Aie, Aii, τ, θif, θib, aif, aib, decayi = p
+    @unpack  Aie, Aii, τ, θif, θib, aif, aib, decayi, nonl_norm = p
     dv = Aie * u + Aii * v
-    dv = simple_sigmoid_fn(dv, aif, θif) - simple_sigmoid_fn(dv, aib, θib) - decayi * v
+    dv = nonl_norm * (simple_sigmoid_fn(dv, aif, θif) - simple_sigmoid_fn(dv, aib, θib)) - decayi * v
     dv /= τ
     dv
 end
@@ -129,7 +129,7 @@ function wcm(u, p, t)
 end
 
 
-function (t::Type{<:AbstractWCMDepParams})(wcm::WCMSpatial{T,1,2}) where T
+function (t::Type{<:AbstractWCMDepParams})(wcm::AbstractWilsonCowanModel{T,1,2}) where T
     nullcline_params = Dict()
     nullcline_params[:Aee] = amplitude(wcm.connectivity.p11)
     # FIXME $20 says this is transposed
@@ -150,7 +150,7 @@ function (t::Type{<:AbstractWCMDepParams})(wcm::WCMSpatial{T,1,2}) where T
     nullcline_params[:decayi] = wcm.α[2]
     return t(; nullcline_params...)
 end
-function (t::Type{<:AbstractWCMParams})(wcm::WCMSpatial{T,1,2}) where T
+function (t::Type{<:AbstractWCMParams})(wcm::AbstractWilsonCowanModel{T,1,2}) where T
     nullcline_params = Dict()
     nullcline_params[:Aee] = amplitude(wcm.connectivity.p11)
     # FIXME $20 says this is transposed
@@ -168,8 +168,8 @@ function (t::Type{<:AbstractWCMParams})(wcm::WCMSpatial{T,1,2}) where T
 end
 (t::Type{<:AbstractNullclineParams})(sim::AbstractSimulation) = t(sim.model)
 
-wcm_nullcline_params(sim::AbstractSimulation) = wcm_nullcline_params(sim.model)
-function wcm_nullcline_params(model::WCMSpatial)
+get_nullcline_params(sim::AbstractSimulation) = get_nullcline_params(sim.model)
+function get_nullcline_params(model::WCMSpatial)
     if model.nonlinearity.p2 isa AbstractSigmoidNonlinearityParameter
         return WCMParams(model)
     elseif model.nonlinearity.p2 isa AbstractDifferenceOfSigmoidsParameter
@@ -178,9 +178,7 @@ function wcm_nullcline_params(model::WCMSpatial)
         error("Unhandled nonlinearity $(typeof(model.nonlinearity))")
     end
 end
-
-he2018_nullcline_params(sim::AbstractSimulation) = he2018_nullcline_params(sim.model)
-function he2018_nullcline_params(model::WCMSpatial)
+function get_nullcline_params(model::HarrisErmentrout2018)
     if model.nonlinearity.p2 isa AbstractSigmoidNonlinearityParameter
         return HE2018Params(model)
     elseif model.nonlinearity.p2 isa AbstractDifferenceOfSigmoidsParameter
@@ -190,4 +188,4 @@ function he2018_nullcline_params(model::WCMSpatial)
     end
 end
 
-export wcm_nullcline_params, he2018_nullcline_params
+export get_nullcline_params
