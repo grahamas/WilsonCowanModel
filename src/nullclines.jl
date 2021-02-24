@@ -1,75 +1,75 @@
 using Parameters
 using NeuralModels: simple_sigmoid_fn
 
-abstract type AbstractNullclineParams end
-abstract type AbstractWCMParams <: AbstractNullclineParams end
-abstract type AbstractWCMDepParams <: AbstractNullclineParams end
+abstract type AbstractNullclineParams{T} end
+abstract type AbstractWCMParams{T} <: AbstractNullclineParams{T} end
+abstract type AbstractWCMDepParams{T} <: AbstractNullclineParams{T} end
 
 export AbstractNullclineParams, AbstractWCMParams, AbstractWCMDepParams
 export WCMDepParams, WCMParams, HE2018Params, HE2018DepParams
 
 us = -0.1:0.01:1.0; vs = copy(us);
 
-@with_kw struct WCMDepParams <: AbstractWCMDepParams
-    Aee
-    Aei
-    Aie
-    Aii
-    θef
-    aef
-    θif
-    aif
-    θib
-    aib
-    τ
-    decaye
-    decayi
-    nonl_norm
+@with_kw struct WCMDepParams{T} <: AbstractWCMDepParams{T}
+    Aee::T
+    Aei::T
+    Aie::T
+    Aii::T
+    θef::T
+    aef::T
+    θif::T
+    aif::T
+    θib::T
+    aib::T
+    τ::T
+    decaye::T
+    decayi::T
+    nonl_norm::T
 end
 
-@with_kw struct WCMParams <: AbstractWCMParams
-    Aee
-    Aei
-    Aie
-    Aii
-    θef
-    aef
-    θif
-    aif
-    τ
-    decaye
-    decayi
+@with_kw struct WCMParams{T} <: AbstractWCMParams{T}
+    Aee::T
+    Aei::T
+    Aie::T
+    Aii::T
+    θef::T
+    aef::T
+    θif::T
+    aif::T
+    τ::T
+    decaye::T
+    decayi::T
 end
 
-@with_kw struct HE2018DepParams <: AbstractWCMDepParams
-    Aee
-    Aei
-    Aie
-    Aii
-    θef
-    aef
-    θif
-    aif
-    θib
-    aib
-    τ
-    decaye
-    decayi
-    nonl_norm
+@with_kw struct HE2018DepParams{T} <: AbstractWCMDepParams{T}
+    Aee::T
+    Aei::T
+    Aie::T
+    Aii::T
+    θef::T
+    aef::T
+    θif::T
+    aif::T
+    θib::T
+    aib::T
+    τ::T
+    decaye::T
+    decayi::T
+    nonl_norm::T
 end
 
-@with_kw struct HE2018Params <: AbstractWCMParams
-    Aee
-    Aei
-    Aie
-    Aii
-    θef
-    aef
-    θif
-    aif
-    τ
-    decaye
-    decayi
+@with_kw struct HE2018Params{T} <: AbstractWCMParams{T}
+    Aee::T
+    Aei::T
+    Aie::T
+    Aii::T
+    θef::T
+    aef::T
+    θif::T
+    aif::T
+    τ::T
+    decaye::T
+    decayi::T
 end
 
 function wcm_du_defn(u, v, p::Union{HE2018DepParams,HE2018Params})
