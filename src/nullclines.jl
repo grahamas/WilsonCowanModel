@@ -2,15 +2,15 @@ using Parameters
 using NeuralModels: simple_sigmoid_fn
 
 abstract type AbstractNullclineParams{T} end
-abstract type AbstractWCMParams{T} <: AbstractNullclineParams{T} end
-abstract type AbstractWCMDepParams{T} <: AbstractNullclineParams{T} end
+abstract type AbstractWCMNullclineParams{T} <: AbstractNullclineParams{T} end
+abstract type AbstractWCMDepNullclineParams{T} <: AbstractNullclineParams{T} end
 
-export AbstractNullclineParams, AbstractWCMParams, AbstractWCMDepParams
+export AbstractNullclineParams, AbstractWCMNullclineParams, AbstractWCMDepNullclineParams
 export WCMDepParams, WCMParams, HE2018Params, HE2018DepParams
 
 us = -0.1:0.01:1.0; vs = copy(us);
 
-@with_kw struct WCMDepParams{T} <: AbstractWCMDepParams{T}
+@with_kw struct WCMDepParams{T} <: AbstractWCMDepNullclineParams{T}
     Aee::T
     Aei::T
     Aie::T
@@ -27,7 +27,7 @@ us = -0.1:0.01:1.0; vs = copy(us);
     nonl_norm::T
 end
 
-@with_kw struct WCMParams{T} <: AbstractWCMParams{T}
+@with_kw struct WCMParams{T} <: AbstractWCMNullclineParams{T}
     Aee::T
     Aei::T
     Aie::T
@@ -41,7 +41,7 @@ end
     decayi::T
 end
 
-@with_kw struct HE2018DepParams{T} <: AbstractWCMDepParams{T}
+@with_kw struct HE2018DepParams{T} <: AbstractWCMDepNullclineParams{T}
     Aee::T
     Aei::T
     Aie::T
@@ -58,7 +58,7 @@ end
     nonl_norm::T
 end
 
-@with_kw struct HE2018Params{T} <: AbstractWCMParams{T}
+@with_kw struct HE2018Params{T} <: AbstractWCMNullclineParams{T}
     Aee::T
     Aei::T
     Aie::T
@@ -129,7 +129,7 @@ function wcm(u, p, t)
 end
 
 
-function (t::Type{<:AbstractWCMDepParams})(wcm::AbstractWilsonCowanModel{T,1,2}) where T
+function (t::Type{<:AbstractWCMDepNullclineParams})(wcm::AbstractWilsonCowanModel{T,1,2}) where T
     nullcline_params = Dict()
     nullcline_params[:Aee] = amplitude(wcm.connectivity.p11)
     # FIXME $20 says this is transposed
@@ -150,7 +150,7 @@ function (t::Type{<:AbstractWCMDepParams})(wcm::AbstractWilsonCowanModel{T,1,2})
     nullcline_params[:decayi] = wcm.α[2]
     return t(; nullcline_params...)
 end
-function (t::Type{<:AbstractWCMParams})(wcm::AbstractWilsonCowanModel{T,1,2}) where T
+function (t::Type{<:AbstractWCMNullclineParams})(wcm::AbstractWilsonCowanModel{T,1,2}) where T
     nullcline_params = Dict()
     nullcline_params[:Aee] = amplitude(wcm.connectivity.p11)
     # FIXME $20 says this is transposed
