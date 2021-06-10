@@ -1,7 +1,7 @@
 name = "WilsonCowanModel"
 uuid = "bdbc91b4-201b-11e9-2b98-89611552dcef"
 authors = ["Graham Smith <grahamas@gmail.com>"]
-version = "2.0.0"
+version = "2.1.0"
 
 [deps]
 Contour = "d38c429a-6771-53c6-b99e-75d170b6e991"
