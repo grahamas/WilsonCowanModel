@@ -1,5 +1,5 @@
 using Parameters
-using NeuralModels: simple_sigmoid_fn
+using NeuralModels: simple_sigmoid
 
 abstract type AbstractNullclineParams{T} end
 abstract type AbstractWCMNullclineParams{T} <: AbstractNullclineParams{T} end
@@ -75,14 +75,14 @@ end
 function wcm_du_defn(u, v, p::Union{HE2018DepParams,HE2018Params})
     @unpack Aee, Aei, θef, aef, decaye = p
     du = Aee * u + Aei * v
-    du = simple_sigmoid_fn(du, aef, θef) - decaye * u
+    du = simple_sigmoid(du, aef, θef) - decaye * u
     du
 end
 
 function wcm_dv_defn(u, v, p::HE2018Params)
     @unpack  Aie, Aii, τ, θif, aif, decayi = p
     dv = Aie * u + Aii * v
-    dv = simple_sigmoid_fn(dv, aif, θif) - decayi * v
+    dv = simple_sigmoid(dv, aif, θif) - decayi * v
     dv /= τ
     dv
 end
@@ -90,7 +90,7 @@ end
 function wcm_dv_defn(u, v, p::HE2018DepParams)
     @unpack  Aie, Aii, τ, θif, θib, aif, aib, decayi, nonl_norm = p
     dv = Aie * u + Aii * v
-    dv = nonl_norm * (simple_sigmoid_fn(dv, aif, θif) - simple_sigmoid_fn(dv, aib, θib)) - decayi * v
+    dv = nonl_norm * (simple_sigmoid(dv, aif, θif) - simple_sigmoid(dv, aib, θib)) - decayi * v
     dv /= τ
     dv
 end
@@ -98,14 +98,14 @@ end
 function wcm_du_defn(u, v, p::Union{WCMDepParams,WCMParams})
     @unpack Aee, Aei, θef, aef, decaye = p
     du = Aee * u + Aei * v
-    du = (1-u) * simple_sigmoid_fn(du, aef, θef) - decaye * u
+    du = (1-u) * simple_sigmoid(du, aef, θef) - decaye * u
     du
 end
 
 function wcm_dv_defn(u, v, p::WCMParams)
     @unpack  Aie, Aii, τ, θif, aif, decayi = p
     dv = Aie * u + Aii * v
-    dv = (1-v) * (NeuralModels.rectified_unzeroed_sigmoid_fn(dv, aif, θif)) - decayi * v
+    dv = (1-v) * (NeuralModels.rectified_unzeroed_sigmoid(dv, aif, θif)) - decayi * v
     dv /= τ
     dv
 end
@@ -113,7 +113,7 @@ end
 function wcm_dv_defn(u, v, p::WCMDepParams)
     @unpack  Aie, Aii, τ, θif, θib, aif, aib, decayi, nonl_norm = p
     dv = Aie * u + Aii * v
-    dv = nonl_norm * (1-v) * (NeuralModels.rectified_unzeroed_sigmoid_fn(dv, aif, θif) - NeuralModels.rectified_unzeroed_sigmoid_fn(dv, aib, θib)) - decayi * v
+    dv = nonl_norm * (1-v) * (NeuralModels.rectified_unzeroed_sigmoid(dv, aif, θif) - NeuralModels.rectified_unzeroed_sigmoid(dv, aib, θib)) - decayi * v
     dv /= τ
     dv
 end
