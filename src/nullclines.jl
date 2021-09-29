@@ -152,14 +152,14 @@ end
 function wcm_du_defn(u, v, p::Union{WCMDepErfParams,WCMErfParams})
     @unpack Aee, Aei, μef, σef, decaye = p
     du = Aee * u + Aei * v
-    du = (1-u) * erf(du, σef, μef) - decaye * u
+    du = (1-u) * shifted_erf(du, σef, μef) - decaye * u
     du
 end
 
 function wcm_dv_defn(u, v, p::WCMErfParams)
     @unpack  Aie, Aii, τ, μif, σif, decayi = p
     dv = Aie * u + Aii * v
-    dv = (1-v) * (erf(dv, σif, μif)) - decayi * v
+    dv = (1-v) * (shifted_erf(dv, σif, μif)) - decayi * v
     dv /= τ
     dv
 end
@@ -167,7 +167,7 @@ end
 function wcm_dv_defn(u, v, p::WCMDepErfParams)
     @unpack  Aie, Aii, τ, μif, μib, σif, σib, decayi, nonl_norm = p
     dv = Aie * u + Aii * v
-    dv = nonl_norm * (1-v) * (erf(dv, σif, μif) - erf(dv, σib, μib)) - decayi * v
+    dv = nonl_norm * (1-v) * (shifted_erf(dv, σif, μif) - shifted_erf(dv, σib, μib)) - decayi * v
     dv /= τ
     dv
 end
