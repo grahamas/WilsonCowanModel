@@ -1,7 +1,7 @@
 name = "WilsonCowanModel"
 uuid = "bdbc91b4-201b-11e9-2b98-89611552dcef"
 authors = ["Graham Smith <grahamas@gmail.com>"]
-version = "2.1.1"
+version = "2.1.2"
 
 [deps]
 Contour = "d38c429a-6771-53c6-b99e-75d170b6e991"
@@ -12,7 +12,7 @@ Simulation73 = "310cc8c8-1ffe-11e9-399c-c5a008d6bdcc"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 
 [compat]
-NeuralModels = "2.1.1"
+NeuralModels = "2.1.2"
 julia = "1.3"
 
 [extras]
