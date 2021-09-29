@@ -138,8 +138,8 @@ function (t::Type{<:AbstractWCMDepNullclineParams})(wcm::AbstractWilsonCowanMode
     nullcline_params[:Aii] = amplitude(wcm.connectivity.p22)
     nullcline_params[:θef] = wcm.nonlinearity.p1.θ
     nullcline_params[:aef] = wcm.nonlinearity.p1.a
-    fsig = get_firing_sigmoid(wcm.nonlinearity.p2)
-    bsig = get_blocking_sigmoid(wcm.nonlinearity.p2)
+    fsig = get_firing_fn(wcm.nonlinearity.p2)
+    bsig = get_blocking_fn(wcm.nonlinearity.p2)
     nullcline_params[:nonl_norm] = NeuralModels.calc_norm_factor(wcm.nonlinearity.p2.dosp)
     nullcline_params[:θif] = fsig.θ 
     nullcline_params[:θib] = bsig.θ
