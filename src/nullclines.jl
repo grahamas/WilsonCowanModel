@@ -10,7 +10,7 @@ export WCMDepParams, WCMParams, HE2018Params, HE2018DepParams
 
 us = -0.1:0.01:1.0; vs = copy(us);
 
-@with_kw struct WCMDepParams{T} <: AbstractWCMDepNullclineParams{T}
+@with_kw struct WCMDepParams{T} <: AbstractNullclineParams{T}
     Aee::T
     Aei::T
     Aie::T
@@ -27,6 +27,23 @@ us = -0.1:0.01:1.0; vs = copy(us);
     nonl_norm::T
 end
 
+@with_kw struct WCMDepErfParams{T} <: AbstractErfNullclineParams{T}
+    Aee::T
+    Aei::T
+    Aie::T
+    Aii::T
+    μef::T
+    σef::T
+    μif::T
+    σif::T
+    μib::T
+    σib::T
+    τ::T
+    decaye::T
+    decayi::T
+    nonl_norm::T
+end
+
 @with_kw struct WCMParams{T} <: AbstractWCMNullclineParams{T}
     Aee::T
     Aei::T
@@ -36,6 +53,20 @@ end
     aef::T
     θif::T
     aif::T
+    τ::T
+    decaye::T
+    decayi::T
+end
+
+@with_kw struct WCMErfParams{T} <: AbstractWCMErfNullclineParams{T}
+    Aee::T
+    Aei::T
+    Aie::T
+    Aii::T
+    μef::T
+    σef::T
+    μif::T
+    σif::T
     τ::T
     decaye::T
     decayi::T
@@ -118,6 +149,29 @@ function wcm_dv_defn(u, v, p::WCMDepParams)
     dv
 end
 
+function wcm_du_defn(u, v, p::Union{WCMDepErfParams,WCMErfParams})
+    @unpack Aee, Aei, μef, σef, decaye = p
+    du = Aee * u + Aei * v
+    du = (1-u) * erf(du, σef, μef) - decaye * u
+    du
+end
+
+function wcm_dv_defn(u, v, p::WCMErfParams)
+    @unpack  Aie, Aii, τ, μif, σif, decayi = p
+    dv = Aie * u + Aii * v
+    dv = (1-v) * (erf(dv, σif, μif)) - decayi * v
+    dv /= τ
+    dv
+end
+
+function wcm_dv_defn(u, v, p::WCMDepErfParams)
+    @unpack  Aie, Aii, τ, μif, μib, σif, σib, decayi, nonl_norm = p
+    dv = Aie * u + Aii * v
+    dv = nonl_norm * (1-v) * (erf(dv, σif, μif) - erf(dv, σib, μib)) - decayi * v
+    dv /= τ
+    dv
+end
+
 function wcm!(F, u, p, t)
     F[1] = wcm_du_defn(u[1], u[2], p)
     F[2] = wcm_dv_defn(u[1], u[2], p)
@@ -128,6 +182,43 @@ function wcm(u, p, t)
     return x
 end
 
+function (t::Type{<:WCMDepErfParams})(wcm::AbstractWilsonCowanModel{T,1,2}) where T
+    nullcline_params = Dict()
+    nullcline_params[:Aee] = amplitude(wcm.connectivity.p11)
+    # FIXME $20 says this is transposed
+    nullcline_params[:Aei] = amplitude(wcm.connectivity.p12)
+    nullcline_params[:Aie] = amplitude(wcm.connectivity.p21)
+    nullcline_params[:Aii] = amplitude(wcm.connectivity.p22)
+    nullcline_params[:μef] = wcm.nonlinearity.p1.μ
+    nullcline_params[:σef] = wcm.nonlinearity.p1.σ
+    firing_fn = get_firing_fn(wcm.nonlinearity.p2)
+    blocking_fn = get_blocking_fn(wcm.nonlinearity.p2)
+    nullcline_params[:nonl_norm] = NeuralModels.calc_norm_factor(wcm.nonlinearity.p2.dosp)
+    nullcline_params[:μif] = firing_fn.μ 
+    nullcline_params[:μib] = blocking_fn.μ
+    nullcline_params[:σif] = firing_fn.σ
+    nullcline_params[:σib] = blocking_fn.σ
+    nullcline_params[:τ] = wcm.τ[2] / wcm.τ[1]
+    nullcline_params[:decaye] = wcm.α[1]
+    nullcline_params[:decayi] = wcm.α[2]
+    return t(; nullcline_params...)
+end
+function (t::Type{<:WCMErfParams})(wcm::AbstractWilsonCowanModel{T,1,2}) where T
+    nullcline_params = Dict()
+    nullcline_params[:Aee] = amplitude(wcm.connectivity.p11)
+    # FIXME $20 says this is transposed
+    nullcline_params[:Aei] = amplitude(wcm.connectivity.p12)
+    nullcline_params[:Aie] = amplitude(wcm.connectivity.p21)
+    nullcline_params[:Aii] = amplitude(wcm.connectivity.p22)
+    nullcline_params[:μef] = wcm.nonlinearity.p1.μ
+    nullcline_params[:σef] = wcm.nonlinearity.p1.σ
+    nullcline_params[:μif] = wcm.nonlinearity.p2.μ
+    nullcline_params[:σif] = wcm.nonlinearity.p2.σ
+    nullcline_params[:τ] = wcm.τ[2] / wcm.τ[1]
+    nullcline_params[:decaye] = wcm.α[1]
+    nullcline_params[:decayi] = wcm.α[2]
+    return t(; nullcline_params...)
+end
 
 function (t::Type{<:AbstractWCMDepNullclineParams})(wcm::AbstractWilsonCowanModel{T,1,2}) where T
     nullcline_params = Dict()
@@ -172,8 +263,12 @@ get_nullcline_params(sim::AbstractSimulation) = get_nullcline_params(sim.model)
 function get_nullcline_params(model::WCMSpatial)
     if model.nonlinearity.p2 isa AbstractSigmoidNonlinearityParameter
         return WCMParams(model)
+    elseif model.nonlinearity.p2 isa AbstractErfNonlinearityParameter
+        return WCMErfParams(model)
     elseif model.nonlinearity.p2 isa AbstractDifferenceOfSigmoidsParameter
         return WCMDepParams(model)
+    elseif model.nonlinearity.p2 isa AbstractDifferenceOfErfsParameter
+        return WCMDepErfParams(model)
     else
         error("Unhandled nonlinearity $(typeof(model.nonlinearity))")
     end
