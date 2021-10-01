@@ -3,10 +3,13 @@ using NeuralModels: simple_sigmoid
 
 abstract type AbstractNullclineParams{T} end
 abstract type AbstractWCMNullclineParams{T} <: AbstractNullclineParams{T} end
-abstract type AbstractWCMDepNullclineParams{T} <: AbstractNullclineParams{T} end
+abstract type AbstractWCMMonNullclineParams{T} <: AbstractWCMNullclineParams{T} end
+abstract type AbstractWCMDepNullclineParams{T} <: AbstractWCMNullclineParams{T} end
+abstract type AbstractWCMErfNullclineParams{T} <: AbstractWCMNullclineParams{T} end
 
-export AbstractNullclineParams, AbstractWCMNullclineParams, AbstractWCMDepNullclineParams
-export WCMDepParams, WCMParams, HE2018Params, HE2018DepParams
+export AbstractNullclineParams, AbstractWCMMonNullclineParams, AbstractWCMDepNullclineParams, AbstractWCMErfNullclineParams,
+AbstractWCMNullclineParams
+export WCMDepParams, WCMMonParams, HE2018Params, HE2018DepParams
 
 us = -0.1:0.01:1.0; vs = copy(us);
 
@@ -27,7 +30,7 @@ us = -0.1:0.01:1.0; vs = copy(us);
     nonl_norm::T
 end
 
-@with_kw struct WCMDepErfParams{T} <: AbstractErfNullclineParams{T}
+@with_kw struct WCMDepErfParams{T} <: AbstractWCMErfNullclineParams{T}
     Aee::T
     Aei::T
     Aie::T
@@ -41,10 +44,10 @@ end
     τ::T
     decaye::T
     decayi::T
-    nonl_norm::T
+    # nonl_norm::T
 end
 
-@with_kw struct WCMParams{T} <: AbstractWCMNullclineParams{T}
+@with_kw struct WCMMonParams{T} <: AbstractWCMMonNullclineParams{T}
     Aee::T
     Aei::T
     Aie::T
@@ -58,7 +61,7 @@ end
     decayi::T
 end
 
-@with_kw struct WCMErfParams{T} <: AbstractWCMErfNullclineParams{T}
+@with_kw struct WCMMonErfParams{T} <: AbstractWCMErfNullclineParams{T}
     Aee::T
     Aei::T
     Aie::T
@@ -89,7 +92,7 @@ end
     nonl_norm::T
 end
 
-@with_kw struct HE2018Params{T} <: AbstractWCMNullclineParams{T}
+@with_kw struct HE2018Params{T} <: AbstractWCMMonNullclineParams{T}
     Aee::T
     Aei::T
     Aie::T
@@ -126,14 +129,14 @@ function wcm_dv_defn(u, v, p::HE2018DepParams)
     dv
 end
 
-function wcm_du_defn(u, v, p::Union{WCMDepParams,WCMParams})
+function wcm_du_defn(u, v, p::Union{WCMDepParams,WCMMonParams})
     @unpack Aee, Aei, θef, aef, decaye = p
     du = Aee * u + Aei * v
     du = (1-u) * simple_sigmoid(du, aef, θef) - decaye * u
     du
 end
 
-function wcm_dv_defn(u, v, p::WCMParams)
+function wcm_dv_defn(u, v, p::WCMMonParams)
     @unpack  Aie, Aii, τ, θif, aif, decayi = p
     dv = Aie * u + Aii * v
     dv = (1-v) * (NeuralModels.rectified_unzeroed_sigmoid(dv, aif, θif)) - decayi * v
@@ -149,14 +152,14 @@ function wcm_dv_defn(u, v, p::WCMDepParams)
     dv
 end
 
-function wcm_du_defn(u, v, p::Union{WCMDepErfParams,WCMErfParams})
+function wcm_du_defn(u, v, p::Union{WCMDepErfParams,WCMMonErfParams})
     @unpack Aee, Aei, μef, σef, decaye = p
     du = Aee * u + Aei * v
     du = (1-u) * shifted_erf(du, σef, μef) - decaye * u
     du
 end
 
-function wcm_dv_defn(u, v, p::WCMErfParams)
+function wcm_dv_defn(u, v, p::WCMMonErfParams)
     @unpack  Aie, Aii, τ, μif, σif, decayi = p
     dv = Aie * u + Aii * v
     dv = (1-v) * (shifted_erf(dv, σif, μif)) - decayi * v
@@ -165,9 +168,10 @@ function wcm_dv_defn(u, v, p::WCMErfParams)
 end
 
 function wcm_dv_defn(u, v, p::WCMDepErfParams)
-    @unpack  Aie, Aii, τ, μif, μib, σif, σib, decayi, nonl_norm = p
+    @unpack  Aie, Aii, τ, μif, μib, σif, σib, decayi = p
     dv = Aie * u + Aii * v
-    dv = nonl_norm * (1-v) * (shifted_erf(dv, σif, μif) - shifted_erf(dv, σib, μib)) - decayi * v
+    # dv = nonl_norm * (1-v) * (shifted_erf(dv, σif, μif) - shifted_erf(dv, σib, μib)) - decayi * v
+    dv = (1-v) * (shifted_erf(dv, σif, μif) - shifted_erf(dv, σib, μib)) - decayi * v
     dv /= τ
     dv
 end
@@ -193,7 +197,7 @@ function (t::Type{<:WCMDepErfParams})(wcm::AbstractWilsonCowanModel{T,1,2}) wher
     nullcline_params[:σef] = wcm.nonlinearity.p1.σ
     firing_fn = get_firing_fn(wcm.nonlinearity.p2)
     blocking_fn = get_blocking_fn(wcm.nonlinearity.p2)
-    nullcline_params[:nonl_norm] = NeuralModels.calc_norm_factor(wcm.nonlinearity.p2.dosp)
+    #nullcline_params[:nonl_norm] = NeuralModels.calc_norm_factor(wcm.nonlinearity.p2)
     nullcline_params[:μif] = firing_fn.μ 
     nullcline_params[:μib] = blocking_fn.μ
     nullcline_params[:σif] = firing_fn.σ
@@ -203,7 +207,7 @@ function (t::Type{<:WCMDepErfParams})(wcm::AbstractWilsonCowanModel{T,1,2}) wher
     nullcline_params[:decayi] = wcm.α[2]
     return t(; nullcline_params...)
 end
-function (t::Type{<:WCMErfParams})(wcm::AbstractWilsonCowanModel{T,1,2}) where T
+function (t::Type{<:WCMMonErfParams})(wcm::AbstractWilsonCowanModel{T,1,2}) where T
     nullcline_params = Dict()
     nullcline_params[:Aee] = amplitude(wcm.connectivity.p11)
     # FIXME $20 says this is transposed
@@ -241,7 +245,7 @@ function (t::Type{<:AbstractWCMDepNullclineParams})(wcm::AbstractWilsonCowanMode
     nullcline_params[:decayi] = wcm.α[2]
     return t(; nullcline_params...)
 end
-function (t::Type{<:AbstractWCMNullclineParams})(wcm::AbstractWilsonCowanModel{T,1,2}) where T
+function (t::Type{<:AbstractWCMMonNullclineParams})(wcm::AbstractWilsonCowanModel{T,1,2}) where T
     nullcline_params = Dict()
     nullcline_params[:Aee] = amplitude(wcm.connectivity.p11)
     # FIXME $20 says this is transposed
@@ -262,9 +266,9 @@ end
 get_nullcline_params(sim::AbstractSimulation) = get_nullcline_params(sim.model)
 function get_nullcline_params(model::WCMSpatial)
     if model.nonlinearity.p2 isa AbstractSigmoidNonlinearityParameter
-        return WCMParams(model)
+        return WCMMonParams(model)
     elseif model.nonlinearity.p2 isa AbstractErfNonlinearityParameter
-        return WCMErfParams(model)
+        return WCMMonErfParams(model)
     elseif model.nonlinearity.p2 isa AbstractDifferenceOfSigmoidsParameter
         return WCMDepParams(model)
     elseif model.nonlinearity.p2 isa AbstractDifferenceOfErfsParameter
