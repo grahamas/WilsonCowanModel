@@ -13,7 +13,7 @@ export WCMDepParams, WCMMonParams, HE2018Params, HE2018DepParams
 
 us = -0.1:0.01:1.0; vs = copy(us);
 
-@with_kw struct WCMDepParams{T} <: AbstractNullclineParams{T}
+@with_kw struct WCMDepParams{T} <: AbstractWCMDepNullclineParams{T}
     Aee::T
     Aei::T
     Aie::T
