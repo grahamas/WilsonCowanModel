@@ -1,13 +1,12 @@
 using Parameters
 using NeuralModels: simple_sigmoid
 
-abstract type AbstractNullclineParams{T} end
 abstract type AbstractWCMNullclineParams{T} <: AbstractNullclineParams{T} end
 abstract type AbstractWCMMonNullclineParams{T} <: AbstractWCMNullclineParams{T} end
 abstract type AbstractWCMDepNullclineParams{T} <: AbstractWCMNullclineParams{T} end
 abstract type AbstractWCMErfNullclineParams{T} <: AbstractWCMNullclineParams{T} end
 
-export AbstractNullclineParams, AbstractWCMMonNullclineParams, AbstractWCMDepNullclineParams, AbstractWCMErfNullclineParams,
+export AbstractWCMMonNullclineParams, AbstractWCMDepNullclineParams, AbstractWCMErfNullclineParams,
 AbstractWCMNullclineParams
 export WCMDepParams, WCMMonParams, HE2018Params, HE2018DepParams
 
@@ -174,6 +173,13 @@ function wcm_dv_defn(u, v, p::WCMDepErfParams)
     dv = (1-v) * (shifted_erf(dv, σif, μif) - shifted_erf(dv, σib, μib)) - decayi * v
     dv /= τ
     dv
+end
+
+function field_functions(p::AbstractWCMNullclineParams)
+    (wcm_du_defn, wcm_dv_defn)
+end
+function phase_space_bounds(p::AbstractWCMNullclineParams)
+    ((0.,1.), (0.,1.))
 end
 
 function wcm!(F, u, p, t)
