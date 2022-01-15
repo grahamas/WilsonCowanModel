@@ -5,7 +5,7 @@ using StaticArrays
 using Simulation73
 import Simulation73: target_loss
 using NeuralModels
-import NullclineAnalysis: field_functions, phase_space_bounds
+import NullclineAnalysis: field_functions, phase_space_bounds, get_nullcline_params
 using NullclineAnalysis
 using NamedDims
 
